@@ -48,6 +48,7 @@ def handleArr():
     job = None
     # update the lastEvent var
     lastEvent = clock
+    # sabrina hatch
     # update the new rate for the server
     rate = (1/len(servingList))
 
