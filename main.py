@@ -8,7 +8,7 @@
 # inc the length of experiment
 # run comparison for 70% load and compare for SPRT
 # randomly generated and created by hand
-# run 10 departures and read code carefully + go over pseudocode
+
 import numpy as np
 
 class Job:
@@ -16,7 +16,7 @@ class Job:
         self.arrivalTime = arrivalTime
         self.size = size
         self.rpt = rpt
-        self.pDepartureTime = None
+        self.pdt = None
         self.completionTime = None
 
 # Function to generate job sizes
@@ -25,85 +25,78 @@ def generateJobSize():
 
 # Function that generates an interarrival time
 def generateInterarrivalTime():
-    return np.random.exponential(10 / 1)
+    return np.random.exponential(10 / 9)
 
 def handleArr():
     global clock, lastEvent, departures, nextArrTime, nextDepTime, completionTimes, jobSizes, departingJob, rate, servingList
 
+    # create a new job for the new arrival and assign corr. attributes
     size = generateJobSize()
     job = Job(arrivalTime=clock, size=size, rpt=size)
+    # append size of job to list of job sizes
     jobSizes.append(job.size)
 
     # calculate the rpts for each job based on the interval between now and the last event as well as the number
     # of jobs that were in the system BEFORE adding the new job that was just created
-
-    print("this is the servingList: " + str(servingList))
     for x in servingList:
-        # print("This is the jobsize " + str(x.size) + " of " + str(x))
-        # print("This is the rate " + str(rate))
-        # print("This is the rpt before: " + str(x.rpt) + " of " + str(x))
-        # print("This is the time elapsed " + str(clock - lastEvent))
-        x.rpt = x.rpt - (clock - lastEvent) * (1 / len(servingList))
-        # print("this is the rpt of job after " + str(x) + " " + str(x.rpt))
-
-        print("\n")
+        x.rpt = x.rpt - ((clock - lastEvent) * (1 / len(servingList)))
 
     # append the new job to the list of jobs currently being serviced
     servingList.append(job)
-    print("New arrival of " + str(job))
 
-    job = None
-    # update the lastEvent var
+    # update the lastEvent var to be now, signifying the arrival of the new job
     lastEvent = clock
-    # sabrina hatch
+
     # update the new rate for the server
     rate = (1/len(servingList))
 
-    # update all the predicted pDepartureTimes based on the newly calculated rate
+    # update all the pdts based on the newly calculated rate
     for x in servingList:
-        x.pDepartureTime = ((x.rpt)/rate) + clock
-
-    # generate the nextArrTime
+        x.pdt = ((x.rpt)/rate) + clock
 
 
     # find the job with the min departure time and set that departure time equal to the next dep time
-    departingJob = min(servingList, key = lambda x:x.pDepartureTime)
-    nextDepTime = departingJob.pDepartureTime
-    job = None
+    departingJob = min(servingList, key=lambda x: x.pdt)
+    nextDepTime = departingJob.pdt
+    # generate the next arrival time for the queue
     nextArrTime = clock + generateInterarrivalTime()
 
 
 def handleDep():
     global clock, lastEvent, departures, nextArrTime, nextDepTime, completionTimes, jobSizes, departingJob, rate, servingList
-    departures += 1
 
-    departingJob.completionTime = departingJob.pDepartureTime - departingJob.arrivalTime
-    print("New departure of " + str(departingJob))
+    departures += 1
+    departingJob.completionTime = departingJob.pdt - departingJob.arrivalTime
+
+   # collect relevant data from the departing job
     if departures == maxDepartures:
         completionTimes.append(departingJob.completionTime)
-    servingList.remove(departingJob) # equivalent to pop first from the list
 
-    print("this is the rpt of the departing job " + str(departingJob.rpt))
 
+    # update the serving rpts of each job still being serviced
+    for x in servingList:
+        x.rpt = x.rpt - ((clock - lastEvent) * (1 / len(servingList)))
+    lastEvent = clock
+
+    # remove job that just finished from the system
+    servingList.remove(departingJob)
 
     if len(servingList) != 0:
-        # update the serving rpts of each job still being serviced
-        for x in servingList:
-            x.rpt = x.rpt - ((clock - lastEvent) * (1 / len(servingList)))
-        lastEvent = clock
-        # set new rate
+        # set new rate now that job has left the system
         rate = (1 / len(servingList))
 
-
+        # update the rpt of each job in the serving list
         for x in servingList:
-            x.pDepartureTime = (x.rpt / rate) + clock
-        departingJob = min(servingList, key=lambda x: x.pDepartureTime)  # this will be the head of the queue
-        nextDepTime = departingJob.pDepartureTime
-        #print("this is the rpt of the departing job " + str(departingJob.rpt))
+            x.pdt = (x.rpt / rate) + clock
+        departingJob = min(servingList, key=lambda x: x.pdt)
+        nextDepTime = departingJob.pdt
     else:
         departingJob = None
         nextDepTime = float("inf")
         lastEvent = clock
+
+
+
 # The following lines of code run the logic of the simulation
 seed = 0
 maxDepartures = 20000
@@ -136,7 +129,7 @@ for i in range(runs):
 
 
 #load data into a txt file
-with open("PS_LOAD_0.1.txt", "w") as fp:
+with open("PS_LOAD_0.9.txt", "w") as fp:
     for item in completionTimes:
         fp.write("%s\n" % item)
 
